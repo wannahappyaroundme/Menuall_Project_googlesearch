@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Menuall</title>
+        <style>
+            #logo {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                width: 100px; /* 로고 크기 조절 */
+            }
+            #video {
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+                object-fit: contain; /*  */
+            }
+            #canvas {
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+                object-fit: cover; /* 비디오와 캔버스 가운데 정렬 */
+            }
+            #snap {
+                border-radius: 50%;
+                width: 60px;
+                height: 60px;
+            }
+            #resnap {
+                display: none;
+                bottom: 5%;
+                margin-left: auto;
+                margin-right: auto;
+                transform: translate(-50%, -50%);
+                width: 100px; /* size of the rectangle */
+                height: 30px;
+            }
+            #translate {
+                display: none;
+                bottom: 5%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 100px; /* size of the rectangle */
+                height: 30px;
+            }
+            .container {
+                width: 100%;
+                min-width: 320px;
+                text-align: center;
+            }
+            .snap_container {
+                width: 100%;
+                justify-content: center;
+                display: flex;
+            }
+            .canvas_container {
+                text-align: center;
+            }
+            #imageContainer {
+                position: relative;
+                display: none;
+            }
+            .translate_container {
+                width: 100%;
+                justify-content: center;
+                display: flex;
+            }
+            .originalImage {
+                display: block;
+                width: 100%;
+                height: auto;
+            }
+            .overlayText {
+                position: absolute;
+                color: white;
+                background-color: rgba(0, 0, 0, 0.5);
+                padding: 2px;
+            }
+            .overlayButton {
+                position: absolute;
+                padding: 5px 10px;
+                background-color: rgb(255, 111, 0);
+                color: white;
+                cursor: pointer;
+            }
+            .menuboundingBox {
+                position: absolute;
+                padding: 5px 10px;
+                background-color: rgba(0, 252, 55, 0.6);
+                color: white;
+                cursor: pointer;
+            }
+            .menuText {
+                font-size: 100px;
+                font-weight: bold;
+                color: rgb(255, 255, 255);
+                position: relative;
+            }
+            .VORA {
+                bottom: 0px;
+                padding-bottom: 30px;
+                text-align: right;
+                z-index: 4;
+                position: fixed;
+                right: 50px;
+                width: 100%;
+            }
+            #footer {
+                margin-left: auto;
+                margin-right: auto;
+                position: fixed;
+                padding-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <img id="logo" src="logo.JPG" alt="Logo" />
+        <!-- autoplay, muted, playsinline 속성 추가 -->
+        <div class="container" id="videocontainer">
+            <h1>Scan the Menu</h1>
+            <video id="video" width="360" height="480" autoplay muted playsinline></video>
+            <!-- <canvas id="canvas" width="360" height="480"></canvas> -->
+        </div>
+
+        <div class="snap_container">
+            <button id="snap" onclick="TakePicture()">Take Picture</button>
+        </div>
+
+        <div class="canvas_container">
+            <div id="imageContainer">
+                <h1>Scanned Result Image</h1>
+                <canvas id="canvas" width="360" height="480"></canvas>
+                <button id="resnap" onclick="ReTakePicture()">Re-Take</button>
+            </div>
+        </div>
+
+        <!-- 추가: 메뉴 결과 확인 페이지 링크 -->
+        <div class="translate_container">
+            <!-- <a href="/menu" target="_blank">
+        <button id="translate">Translate</button>
+      </a>-->
+            <button id="translate">Translate</button>
+        </div>
+        <footer class="footer">
+            <div class="VORA">
+                if you have a problem, DM to
+                <a href="https://instagram.com/inno_vora?igshid=MjEwN2IyYWYwYw==" style="color: #ffa039">team VORA.</a>
+            </div>
+        </footer>
+        <script>
+            const video = document.getElementById('video');
+            const snapBtn = document.getElementById('snap');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const trans = document.getElementById('translate');
+            const resnapBtn = document.getElementById('resnap');
+            const imageContainer = document.getElementById('imageContainer');
+            const videocontainer = document.getElementById('videocontainer');
+
+            navigator.mediaDevices
+                .getUserMedia({ video: { facingMode: 'environment' } })
+                .then((stream) => {
+                    video.srcObject = stream;
+                })
+                .catch(console.error);
+
+            snapBtn.addEventListener('click', async () => {
+                video.style.display = 'none';
+                snapBtn.style.display = 'none';
+                resnapBtn.style.display = 'block';
+                trans.style.display = 'block';
+                imageContainer.style.display = 'block';
+                videocontainer.style.display = 'none';
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const data = canvas.toDataURL('image/jpeg');
+
+                const formData = new FormData();
+                formData.append('image', dataURItoBlob(data), 'image.jpg');
+
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const json = await response.json();
+
+                    //await fetch("/trans", {
+                    //method: "POST",
+                    //body: JSON.stringify(response.json().data),
+                    //});
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                }
+                canvas.style.display = 'block';
+                resnapBtn.addEventListener('click', async () => {
+                    video.style.display = 'block';
+                    snapBtn.style.display = 'block';
+                    resnapBtn.style.display = 'none';
+                    canvas.style.display = 'none';
+                    trans.style.display = 'none';
+                    imageContainer.style.display = 'none';
+                    videocontainer.style.display = 'block';
+                });
+            });
+
+            trans.addEventListener('click', () => {
+                var myScript = document.createElement('script');
+                myScript.setAttribute('src', 'frontend.js');
+                document.body.insertBefore(myScript, document.body.firstChild);
+            });
+
+            function dataURItoBlob(dataURI) {
+                const binary = atob(dataURI.split(',')[1]);
+                let array = [];
+
+                for (let i = 0; i < binary.length; i++) {
+                    array.push(binary.charCodeAt(i));
+                }
+
+                return new Blob([new Uint8Array(array)], { type: 'image/jpeg' });
+            }
+        </script>
+    </body>
+</html>
